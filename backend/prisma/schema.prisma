@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  EXPERT
+  ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  QUOTED
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+  REDIRECTED
+}
+
+enum QuoteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SupportStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+model User {
+  id                  Int       @id @default(autoincrement())
+  email               String    @unique
+  password            String
+  name                String
+  phone               String
+  tcNo                String    @unique
+  city                String?
+  role                Role      @default(USER)
+  isApproved          Boolean   @default(false) // For experts
+  subscriptionActive  Boolean   @default(false) // For experts
+  subscriptionEndDate DateTime? // For experts
+  trialUsed           Boolean   @default(false) // For experts
+  isBlocked           Boolean   @default(false)
+  blockedAt           DateTime?
+  blockedReason       String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  requestsAsUser   ExpertiseRequest[] @relation("UserRequests")
+  requestsAsExpert ExpertiseRequest[] @relation("ExpertRequests")
+  quotes           Quote[]
+  reports          Report[]
+  reviewsWritten   Review[]           @relation("UserReviewsWritten")
+  reviewsReceived  Review[]           @relation("ExpertReviewsReceived")
+  payments         Payment[]
+  supportRequests  SupportRequest[]
+  supportMessages  SupportMessage[]
+}
+
+enum PaymentMethod {
+  CARD
+  TRANSFER
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id])
+  amount        Float?
+  method        PaymentMethod @default(CARD)
+  status        PaymentStatus @default(PENDING)
+  notes         String?       // For transfer details or admin notes
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model SupportRequest {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id])
+  subject   String
+  status    SupportStatus    @default(OPEN)
+  messages  SupportMessage[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model SupportMessage {
+  id        Int            @id @default(autoincrement())
+  requestId Int
+  request   SupportRequest @relation(fields: [requestId], references: [id])
+  senderId  Int
+  sender    User           @relation(fields: [senderId], references: [id])
+  message   String
+  createdAt DateTime       @default(now())
+}
+
+model ExpertiseRequest {
+  id               Int           @id @default(autoincrement())
+  title            String
+  description      String
+  vehicleInfo      String? 
+  location         String
+  plate            String?       // New field for License Plate
+  chassisNumber    String?       // New field for Chassis Number / VIN
+  status           RequestStatus @default(PENDING)
+  userId           Int
+  user             User          @relation("UserRequests", fields: [userId], references: [id])
+  selectedExpertId Int?
+  selectedExpert   User?         @relation("ExpertRequests", fields: [selectedExpertId], references: [id])
+  
+  isRedirected     Boolean       @default(false)
+  redirectedTo     String?       // Location or branch name
+  redirectReason   String?       
+  
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  quotes           Quote[]
+  report           Report?
+  review           Review?
+}
+
+model Quote {
+  id         Int              @id @default(autoincrement())
+  requestId  Int
+  request    ExpertiseRequest @relation(fields: [requestId], references: [id])
+  expertId   Int
+  expert     User             @relation(fields: [expertId], references: [id])
+  price      Float
+  message    String?
+  status     QuoteStatus      @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model Report {
+  id           Int              @id @default(autoincrement())
+  requestId    Int              @unique
+  request      ExpertiseRequest @relation(fields: [requestId], references: [id])
+  expertId     Int
+  expert       User             @relation(fields: [expertId], references: [id])
+  content      String           
+  vehicleParts Json?
+  documentUrls String?          
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model Review {
+  id         Int              @id @default(autoincrement())
+  requestId  Int              @unique
+  request    ExpertiseRequest @relation(fields: [requestId], references: [id])
+  expertId   Int
+  expert     User             @relation("ExpertReviewsReceived", fields: [expertId], references: [id])
+  userId     Int
+  user       User             @relation("UserReviewsWritten", fields: [userId], references: [id])
+  rating     Int
+  comment    String?          
+  createdAt  DateTime         @default(now())
+}
+
+model SystemSetting {
+  key   String @id
+  value String
+}

@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+.expo/
+dist/
+build/
+*.log
+
+# Sensitive Info
+.env
+.env.local
+backend/.env
+mobile/.env
+
+# OS Files
+.DS_Store
+Thumbs.db
