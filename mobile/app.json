@@ -4,54 +4,46 @@
     "slug": "mobil-expertiz",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon.jpg",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-icon.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
-          "NSExceptionDomains": {
-            "192.168.1.166": {
-              "NSExceptionAllowsInsecureHTTPLoads": true,
-              "NSIncludesSubdomains": false
-            }
-          }
-        }
-      }
+      "supportsTablet": true
     },
     "android": {
-      "package": "com.mobil.expertiz",
-      "permissions": ["CAMERA"],
+      "package": "com.mobil.expertiz.app.main",
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#0f172a",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
-      "statusBar": {
-        "translucent": true,
-        "style": "light",
-        "backgroundColor": "#00000000"
-      },
-      "navigationBar": {
-        "visible": "sticky-immersive",
-        "backgroundColor": "#00000000"
-      },
-      "softwareKeyboardLayoutMode": "pan"
-    },
-    "androidNavigationBar": {
-      "visible": "sticky-immersive",
-      "backgroundColor": "#00000000"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
-      "expo-camera"
-    ]
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Mobil Expertiz to access your camera."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Mobil Expertiz to access your photos."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8ef926c0-3b1e-499a-8a21-1bdefbead4db"
+      }
+    }
   }
 }

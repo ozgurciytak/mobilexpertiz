@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // Gerçek cihazlar (telefon/tablet) için bilgisayarın yerel IP adresi kullanılır.
 const LOCAL_IP = '192.168.1.166';
-const BASE_URL = `http://${LOCAL_IP}:3002/api`;
+const BASE_URL = 'https://mobilexpertiz.onrender.com/api';
 
 // Logout callback - AuthContext tarafından set edilir
 let _logoutCallback = null;
