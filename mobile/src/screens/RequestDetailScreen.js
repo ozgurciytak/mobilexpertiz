@@ -64,7 +64,7 @@ const RequestDetailScreen = ({ route, navigation }) => {
   const handleDownloadPDF = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      const url = `${apiClient.defaults.baseURL}/admin/requests/${requestId}/pdf?token=${token}`;
+      const url = `${apiClient.defaults.baseURL}/requests/${requestId}/pdf?token=${token}`;
       Linking.openURL(url).catch(err => {
         Alert.alert('Hata', 'PDF indirilemedi.');
       });

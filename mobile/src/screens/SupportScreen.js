@@ -70,7 +70,7 @@ const SupportScreen = ({ navigation }) => {
   const renderRequestItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.card}
-      onPress={() => navigation.navigate('SupportDetail', { requestId: item.id })}
+      onPress={() => navigation.navigate('SupportDetail', { ticketId: item.id })}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.cardSubject}>{item.subject}</Text>

@@ -2,12 +2,13 @@
   "expo": {
     "name": "Mobil Expertiz",
     "slug": "mobil-expertiz",
+    "owner": "ozgurciytak",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.jpg",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash-icon.jpg",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
@@ -16,7 +17,7 @@
     },
     "android": {
       "package": "com.mobil.expertiz.app.main",
-      "versionCode": 3,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#0f172a",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -42,7 +43,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "8ef926c0-3b1e-499a-8a21-1bdefbead4db"
+        "projectId": "fd27a703-55c5-4b9a-a94b-8e214e3936f0"
       }
     }
   }
