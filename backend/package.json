@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node --transpile-only src/index.ts",
-    "build": "npx prisma generate && npx tsc && node -e \"const fs=require('fs'); fs.mkdirSync('public', {recursive: true}); fs.writeFileSync('public/index.html', 'OK');\""
+    "build": "npx prisma generate && npx tsc",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
