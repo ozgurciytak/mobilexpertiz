@@ -113,7 +113,7 @@ const UserRequestsScreen = ({ navigation }) => {
               </TouchableOpacity>
           </View>
           <View style={styles.headerTitleRow}>
-              <Text style={styles.headerTitle}>Taleplerim</Text>
+              <Text style={styles.headerTitle}>{user?.role === 'EXPERT' ? 'Aktif İşlerim' : 'Taleplerim'}</Text>
           </View>
       </View>
 
@@ -133,13 +133,19 @@ const UserRequestsScreen = ({ navigation }) => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Henüz bir talep bulunmuyor.</Text>
-              <TouchableOpacity 
-                style={styles.createNowButton}
-                onPress={() => navigation.navigate('RequestCreate')}
-              >
-                <Text style={styles.createNowText}>Hemen Oluştur</Text>
-              </TouchableOpacity>
+              <Text style={styles.emptyText}>
+                {user?.role === 'EXPERT' 
+                  ? 'Henüz aldığınız aktif bir iş bulunmuyor.' 
+                  : 'Henüz bir talep bulunmuyor.'}
+              </Text>
+              {user?.role !== 'EXPERT' && (
+                <TouchableOpacity 
+                  style={styles.createNowButton}
+                  onPress={() => navigation.navigate('RequestCreate')}
+                >
+                  <Text style={styles.createNowText}>Hemen Oluştur</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />

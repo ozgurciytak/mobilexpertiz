@@ -3,15 +3,14 @@ import {
   StyleSheet, 
   Text, 
   View, 
-  ScrollView, 
   TextInput, 
   TouchableOpacity, 
   SafeAreaView, 
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import apiClient from '../api/client';
 
 const ReviewCreateScreen = ({ route, navigation }) => {
@@ -63,11 +62,13 @@ const ReviewCreateScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+      <KeyboardAwareScrollView 
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Text style={styles.backText}>← Geri</Text>
@@ -115,8 +116,7 @@ const ReviewCreateScreen = ({ route, navigation }) => {
               )}
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };

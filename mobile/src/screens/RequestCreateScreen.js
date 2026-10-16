@@ -5,13 +5,12 @@ import {
   View, 
   TextInput, 
   TouchableOpacity, 
-  KeyboardAvoidingView, 
   Platform,
   ActivityIndicator,
   Alert,
-  ScrollView,
   Image
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -78,11 +77,12 @@ const RequestCreateScreen = ({ navigation }) => {
           </View>
       </View>
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
+      <KeyboardAwareScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.form}>
             <Text style={styles.label}>Talep Başlığı</Text>
             <TextInput
@@ -160,8 +160,7 @@ const RequestCreateScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           <View style={{ height: 40 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </View>
   );
 };
@@ -206,9 +205,6 @@ const styles = StyleSheet.create({
   backBtnText: { color: '#38bdf8', fontWeight: 'bold', fontSize: 15 },
   headerTitleRow: { marginTop: 5 },
   headerTitle: { fontSize: 22, color: '#38bdf8', fontWeight: 'bold' },
-  keyboardView: {
-    flex: 1,
-  },
   scrollContent: {
     padding: 24,
   },

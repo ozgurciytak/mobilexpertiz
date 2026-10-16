@@ -11,9 +11,10 @@ import {
   RefreshControl, 
   TextInput, 
   Linking, 
-  ScrollView,
-  Image 
+  Image,
+  Platform 
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -146,6 +147,20 @@ const AdminDashboardScreen = ({ route, navigation }) => {
                 <Text style={styles.recordTitle}>{item.user?.name}</Text>
                 <Text style={styles.recordSubText}>{item.amount} TL | {item.method === 'CARD' ? 'Kredi Kartı' : 'Havale'}</Text>
                 <Text style={styles.recordSubText}>{item.notes}</Text>
+                {item.receiptUrl && (
+                    <TouchableOpacity 
+                        style={{ marginTop: 10, alignSelf: 'flex-start' }}
+                        onPress={() => {
+                            const baseUrl = apiClient.defaults.baseURL.replace('/api', '');
+                            const fullUrl = `${baseUrl}${item.receiptUrl}`;
+                            Linking.openURL(fullUrl).catch(err => {
+                                Alert.alert('Hata', 'Dekont açılamadı.');
+                            });
+                        }}
+                    >
+                        <Text style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: 13 }}>📄 Dekontu Görüntüle</Text>
+                    </TouchableOpacity>
+                )}
                 <View style={[styles.badge, { backgroundColor: getStatusColor(item.status) + '22', borderColor: getStatusColor(item.status), borderWidth: 1, marginTop: 8 }]}>
                     <Text style={[styles.badgeText, { color: getStatusColor(item.status) }]}>{getStatusLabel(item.status)}</Text>
                 </View>
@@ -303,7 +318,13 @@ const AdminDashboardScreen = ({ route, navigation }) => {
 
       <View style={{ flex: 1 }}>
         {tab === 'SETTINGS' ? (
-            <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView 
+              contentContainerStyle={styles.listContent} 
+              showsVerticalScrollIndicator={false}
+              enableOnAndroid={true}
+              extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
+              keyboardShouldPersistTaps="handled"
+            >
                 <View style={styles.settingGroup}>
                     <Text style={styles.settingLabel}>Abonelik Ücreti (TL)</Text>
                     <TextInput 
@@ -340,7 +361,7 @@ const AdminDashboardScreen = ({ route, navigation }) => {
                         <Text style={styles.settingSaveBtnText}>Güncelle</Text>
                     </TouchableOpacity>
                 </View>
-            </ScrollView>
+            </KeyboardAwareScrollView>
         ) : (
             <>
                 {(tab === 'REQUESTS' || tab === 'VEHICLE_SEARCH') && (

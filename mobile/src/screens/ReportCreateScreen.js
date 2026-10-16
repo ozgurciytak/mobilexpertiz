@@ -9,10 +9,10 @@ import {
   SafeAreaView, 
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Image
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../api/client';
 
@@ -44,6 +44,16 @@ const ReportCreateScreen = ({ route, navigation }) => {
       [partName]: {
         ...prev[partName],
         status: prev[partName]?.status === status ? null : status
+      }
+    }));
+  };
+
+  const handlePartNotesChange = (partName, notes) => {
+    setVehicleParts(prev => ({
+      ...prev,
+      [partName]: {
+        ...prev[partName],
+        notes: notes
       }
     }));
   };
@@ -166,6 +176,7 @@ const ReportCreateScreen = ({ route, navigation }) => {
       Object.keys(vehicleParts).forEach(part => {
         finalVehicleParts[part] = {
           status: vehicleParts[part].status,
+          notes: vehicleParts[part].notes || '',
           imageUrl: uploadedPartUrls[part] || null
         };
       });
@@ -199,11 +210,11 @@ const ReportCreateScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+      <KeyboardAwareScrollView 
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Text style={styles.backText}>← Geri</Text>
@@ -236,17 +247,6 @@ const ReportCreateScreen = ({ route, navigation }) => {
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.label}>Ekspertiz Raporu İçeriği</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Aracın motor, kaporta, şase ve diğer aksamları hakkındaki detaylı görüşlerinizi buraya yazın..."
-              placeholderTextColor="#999"
-              value={content}
-              onChangeText={setContent}
-              multiline
-              numberOfLines={6}
-            />
-
             <Text style={styles.label}>Araç Parça Durumları (Orijinal / Değişen Seçimi)</Text>
             <View style={styles.partsContainer}>
               {VEHICLE_PARTS_LIST.map((part) => (
@@ -297,6 +297,13 @@ const ReportCreateScreen = ({ route, navigation }) => {
                       );
                     })}
                   </View>
+                  <TextInput
+                    style={styles.partNotesInput}
+                    placeholder={`${part} hakkında gözlemleriniz...`}
+                    placeholderTextColor="#64748b"
+                    value={vehicleParts[part]?.notes || ''}
+                    onChangeText={(text) => handlePartNotesChange(part, text)}
+                  />
                 </View>
               ))}
             </View>
@@ -363,6 +370,17 @@ const ReportCreateScreen = ({ route, navigation }) => {
               onChangeText={setDocumentUrl}
             />
 
+            <Text style={styles.label}>Genel Ekspertiz Görüşü</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Aracın motor, kaporta, şase ve diğer aksamları hakkındaki detaylı son görüşlerinizi buraya yazın..."
+              placeholderTextColor="#999"
+              value={content}
+              onChangeText={setContent}
+              multiline
+              numberOfLines={6}
+            />
+
             <TouchableOpacity 
               style={[styles.submitButton, submitting && styles.disabledButton, isRedirecting && styles.redirectSubmitButton]} 
               onPress={handleSubmit}
@@ -377,8 +395,7 @@ const ReportCreateScreen = ({ route, navigation }) => {
               )}
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };
@@ -390,6 +407,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
+    paddingBottom: 100
   },
   header: {
     flexDirection: 'row',
@@ -685,6 +703,17 @@ const styles = StyleSheet.create({
   },
   redirectSubmitButton: {
     backgroundColor: '#8b5cf6', // Different color for redirect
+  },
+  partNotesInput: {
+    backgroundColor: '#0f172a',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: '#fff',
+    fontSize: 14,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
 });
 

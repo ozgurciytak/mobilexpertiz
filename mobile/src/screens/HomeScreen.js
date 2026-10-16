@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Image, Dimensions, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../api/client';
+import { registerForPushNotificationsAsync } from '../services/notificationService';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
   const { user, logout, setUser } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Uygulama açıldığında push bildirim token'ını kaydet
+    registerForPushNotificationsAsync();
+  }, []);
 
   const renderMenuCard = (title, icon, color, onPress, fullWidth = false) => (
     <TouchableOpacity 
@@ -88,6 +94,7 @@ const HomeScreen = ({ navigation }) => {
             {renderMenuCard('Yeni Ekspertiz Talebi', '🚗', '#38bdf8', () => navigation.navigate('RequestCreate'), true)}
             {renderMenuCard('Taleplerimi Takip Et', '📋', '#22c55e', () => navigation.navigate('UserRequests'))}
             {renderMenuCard('Rapor Doğrula (QR SCAN)', '🔍', '#f59e0b', () => navigation.navigate('QRScan'))}
+            {renderMenuCard('Hesabım / Profil Bilgileri', '👤', '#6366f1', () => navigation.navigate('Profile'), true)}
           </View>
         )}
 
@@ -98,6 +105,7 @@ const HomeScreen = ({ navigation }) => {
             {renderMenuCard('Aktif İşlerim', '💼', '#22c55e', () => navigation.navigate('UserRequests'))}
             {renderMenuCard('Rapor Doğrula (QR SCAN)', '📱', '#f59e0b', () => navigation.navigate('QRScan'))}
             {renderMenuCard('Abonelik İşlemleri', '💳', '#8b5cf6', () => navigation.navigate('Subscription'), true)}
+            {renderMenuCard('Hesabım / Profil Bilgileri', '👤', '#6366f1', () => navigation.navigate('Profile'), true)}
           </View>
         )}
 

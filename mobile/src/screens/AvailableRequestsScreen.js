@@ -19,7 +19,17 @@ const AvailableRequestsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Check if subscription is valid
+  const isExpert = user?.role === 'EXPERT';
+  const isSubscriptionValid = isExpert && user?.subscriptionActive && (!user?.subscriptionEndDate || new Date(user.subscriptionEndDate) > new Date());
+
+
   const fetchRequests = async () => {
+    if (isExpert && !isSubscriptionValid) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       const response = await apiClient.get('/requests/pool');
       setRequests(response.data);
@@ -33,7 +43,7 @@ const AvailableRequestsScreen = ({ navigation }) => {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [isSubscriptionValid]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -89,7 +99,18 @@ const AvailableRequestsScreen = ({ navigation }) => {
           </View>
       </View>
 
-      {loading ? (
+      {isExpert && !isSubscriptionValid ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>Abonelik durumunuz pasiftir.</Text>
+          <Text style={[styles.emptyText, { fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }]}>Havuzdaki işleri görebilmek için ödeme yapmanız gerekmektedir.</Text>
+          <TouchableOpacity 
+            style={styles.subscribeButton}
+            onPress={() => navigation.navigate('Subscription')}
+          >
+            <Text style={styles.subscribeButtonText}>Abonelik İşlemleri</Text>
+          </TouchableOpacity>
+        </View>
+      ) : loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#38bdf8" />
         </View>
@@ -224,6 +245,18 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 16,
   },
+  subscribeButton: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  subscribeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  }
 });
 
 export default AvailableRequestsScreen;

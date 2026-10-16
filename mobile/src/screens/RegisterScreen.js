@@ -6,15 +6,16 @@ import {
   TextInput, 
   TouchableOpacity, 
   SafeAreaView, 
-  KeyboardAvoidingView, 
   Platform,
   ActivityIndicator,
   Alert,
-  ScrollView,
   Image
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
+
+import { validateTcKimlikNo } from '../utils/tcKimlik';
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -24,22 +25,38 @@ const RegisterScreen = ({ navigation }) => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('USER'); // 'USER' or 'EXPERT'
+  const [taxOffice, setTaxOffice] = useState('');
+  const [taxNumber, setTaxNumber] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [isAgreed, setIsAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
 
   const handleRegister = async () => {
-    if (!name || !email || !tcNo || !phone || !password || !city) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun.');
+    if (!name || !email || !phone || !password || !city) {
+      Alert.alert('Hata', 'Lütfen tüm zorunlu alanları doldurun.');
       return;
     }
 
-    if (tcNo.length !== 11) {
-      Alert.alert('Hata', 'TC Kimlik Numarası 11 haneli olmalıdır.');
+    if (role === 'USER') {
+      if (!tcNo || !validateTcKimlikNo(tcNo)) {
+        Alert.alert('Geçersiz T.C. Kimlik No', 'Lütfen 11 haneli T.C. Kimlik Numaranızı doğru girdiğinizden emin olun.');
+        return;
+      }
+    } else if (role === 'EXPERT') {
+      if (!taxOffice || !taxNumber || !companyName) {
+        Alert.alert('Hata', 'Lütfen kurumsal bilgilerinizi eksiksiz doldurun.');
+        return;
+      }
+    }
+
+    if (!isAgreed) {
+      Alert.alert('Hata', 'Lütfen kayıt sözleşmesini onaylayın.');
       return;
     }
 
     setLoading(true);
-    const result = await register(email, password, name, phone, tcNo, city, role);
+    const result = await register(email, password, name, phone, tcNo, city, role, taxOffice, taxNumber, companyName);
     setLoading(false);
 
     if (!result.success) {
@@ -51,11 +68,11 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar hidden={true} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
             <Image
               source={require('../../assets/logo.png')}
@@ -86,16 +103,50 @@ const RegisterScreen = ({ navigation }) => {
               keyboardType="email-address"
             />
 
-            <Text style={styles.label}>T.C. Kimlik No</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="11 haneli TC kimlik numaranızı girin"
-              placeholderTextColor="#999"
-              value={tcNo}
-              onChangeText={setTcNo}
-              keyboardType="number-pad"
-              maxLength={11}
-            />
+            {role === 'USER' ? (
+              <>
+                <Text style={styles.label}>T.C. Kimlik No</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="11 haneli TC kimlik numaranızı girin"
+                  placeholderTextColor="#999"
+                  value={tcNo}
+                  onChangeText={setTcNo}
+                  keyboardType="number-pad"
+                  maxLength={11}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>Vergi Dairesi</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Bağlı olduğunuz vergi dairesi"
+                  placeholderTextColor="#999"
+                  value={taxOffice}
+                  onChangeText={setTaxOffice}
+                />
+                
+                <Text style={styles.label}>Vergi Numarası</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="10 haneli vergi numaranızı girin"
+                  placeholderTextColor="#999"
+                  value={taxNumber}
+                  onChangeText={setTaxNumber}
+                  keyboardType="number-pad"
+                />
+
+                <Text style={styles.label}>Firma Ünvanı</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Resmi firma ünvanınız"
+                  placeholderTextColor="#999"
+                  value={companyName}
+                  onChangeText={setCompanyName}
+                />
+              </>
+            )}
 
             <Text style={styles.label}>Bulunduğunuz İl</Text>
             <TextInput
@@ -130,17 +181,34 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.roleContainer}>
               <TouchableOpacity
                 style={[styles.roleButton, role === 'USER' && styles.roleButtonActive]}
-                onPress={() => setRole('USER')}
+                onPress={() => {
+                  setRole('USER');
+                  setIsAgreed(false);
+                }}
               >
                 <Text style={[styles.roleButtonText, role === 'USER' && styles.roleButtonTextActive]}>Kullanıcı</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.roleButton, role === 'EXPERT' && styles.roleButtonActive]}
-                onPress={() => setRole('EXPERT')}
+                onPress={() => {
+                  setRole('EXPERT');
+                  setIsAgreed(false);
+                }}
               >
                 <Text style={[styles.roleButtonText, role === 'EXPERT' && styles.roleButtonTextActive]}>Uzman</Text>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity style={styles.checkboxContainer} onPress={() => setIsAgreed(!isAgreed)}>
+              <View style={[styles.checkbox, isAgreed && styles.checkboxChecked]}>
+                {isAgreed && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>
+                {role === 'EXPERT' 
+                  ? 'Ekspertiz Sözleşmesi: Yaptığım raporların doğruluğunu kabul ediyorum ve bu raporlardan kendimin sorumlu olduğunu onaylıyorum.' 
+                  : 'Girdiğim bilgilerin doğruluğunu kabul ediyorum ve sorumluluğun bende olduğunu onaylıyorum.'}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.registerButton}
@@ -163,8 +231,7 @@ const RegisterScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </View>
   );
 };
@@ -174,10 +241,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f172a',
   },
-  keyboardView: {
-    flex: 1,
-  },
   scrollContent: {
+    flexGrow: 1,
     padding: 24,
     paddingBottom: 40,
     alignItems: 'center',
@@ -265,6 +330,36 @@ const styles = StyleSheet.create({
   loginLinkText: {
     color: '#38bdf8',
     fontWeight: 'bold',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#38bdf8',
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#0369a1',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    color: '#e2e8f0',
+    fontSize: 13,
+    flex: 1,
+    lineHeight: 20,
   },
 });
 

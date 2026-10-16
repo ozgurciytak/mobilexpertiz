@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Alert, ActivityIndicator, ScrollView, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, Alert, ActivityIndicator, TextInput, Platform, Image } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +21,47 @@ const SubscriptionScreen = ({ navigation }) => {
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
+
+  // Receipt Image States
+  const [receiptImage, setReceiptImage] = useState(null);
+
+  const pickReceipt = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('İzin Gerekli', 'Dekont yüklemek için galeri erişim izni vermeniz gerekmektedir.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setReceiptImage(result.assets[0]);
+    }
+  };
+
+  const removeReceipt = () => {
+    setReceiptImage(null);
+  };
+
+  const uploadReceipt = async (img) => {
+    if (!img) return null;
+    const formData = new FormData();
+    const fileType = img.uri.split('.').pop();
+    formData.append('images', {
+      uri: Platform.OS === 'ios' ? img.uri.replace('file://', '') : img.uri,
+      name: `receipt_${Date.now()}.${fileType}`,
+      type: `image/${fileType}`,
+    });
+
+    const response = await apiClient.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.urls[0];
+  };
 
   const fetchStatusAndSettings = async () => {
     setLoading(true);
@@ -47,24 +90,40 @@ const SubscriptionScreen = ({ navigation }) => {
             Alert.alert('Eksik Bilgi', 'Lütfen tüm kart bilgilerini doldurunuz.');
             return;
         }
+    } else if (paymentMethod === 'TRANSFER') {
+        if (!receiptImage) {
+            Alert.alert('Eksik Bilgi', 'Havale bildiriminin onaylanabilmesi için lütfen dekont ekleyiniz.');
+            return;
+        }
     }
 
     setSubmitting(true);
     try {
+      let receiptUrl = null;
+      if (paymentMethod === 'TRANSFER' && receiptImage) {
+          receiptUrl = await uploadReceipt(receiptImage);
+      }
+
       await apiClient.post('/payments/initiate', {
           method: paymentMethod,
-          amount: fee,
-          notes: paymentMethod === 'TRANSFER' ? 'Havale Bildirimi' : `Kredi Kartı Ödemesi (${cardHolder})`
+          amount: parseFloat(fee),
+          notes: paymentMethod === 'TRANSFER' ? 'Havale Bildirimi' : `Kredi Kartı Ödemesi (${cardHolder})`,
+          receiptUrl,
+          cardNumber: paymentMethod === 'CARD' ? cardNumber : undefined,
+          expiry: paymentMethod === 'CARD' ? expiry : undefined,
+          cvc: paymentMethod === 'CARD' ? cvc : undefined,
+          cardHolder: paymentMethod === 'CARD' ? cardHolder : undefined
       });
       
       if (paymentMethod === 'CARD') {
           Alert.alert('Başarılı', 'Ödemeniz alındı ve aboneliğiniz 30 gün uzatıldı. Keyifli kullanımlar!');
       } else {
-          Alert.alert('Bildirim Alındı', 'Havale bildiriminiz Admin onayına gönderildi. Kontrol sonrası süreniz uzatılacaktır.');
+          Alert.alert('Bildirim Alındı', 'Havale bildiriminiz ve dekontunuz Admin onayına gönderildi. Kontrol sonrası süreniz uzatılacaktır.');
       }
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Hata', 'Ödeme işlemi başarısız oldu. Lütfen bilgilerinizi kontrol edin.');
+      console.error('Payment error', e);
+      Alert.alert('Hata', 'İşlem başarısız oldu. Lütfen bilgilerinizi veya dekont yüklemesini kontrol edin.');
     } finally {
       setSubmitting(false);
     }
@@ -100,8 +159,13 @@ const SubscriptionScreen = ({ navigation }) => {
           </View>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView 
+        contentContainerStyle={styles.content}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
             {/* CURRENT STATUS CARD */}
             <View style={[styles.statusCard, { borderLeftColor: subscriptionStatus?.subscriptionActive ? '#22c55e' : '#ef4444' }]}>
                 <Text style={styles.statusLabel}>Mevcut Durum</Text>
@@ -140,11 +204,30 @@ const SubscriptionScreen = ({ navigation }) => {
             </View>
 
             {paymentMethod === 'TRANSFER' ? (
-                <View style={styles.bankBox}>
-                    <Text style={styles.bankLabel}>Banka Havale Bilgileri</Text>
-                    <View style={styles.bankInfoField}>
-                        <Text style={styles.bankValTitle}>{bankInfo.title}</Text>
-                        <Text style={styles.bankValIban}>{bankInfo.iban}</Text>
+                <View>
+                    <View style={styles.bankBox}>
+                        <Text style={styles.bankLabel}>Banka Havale Bilgileri</Text>
+                        <View style={styles.bankInfoField}>
+                            <Text style={styles.bankValTitle}>{bankInfo.title}</Text>
+                            <Text style={styles.bankValIban}>{bankInfo.iban}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.receiptBox}>
+                        <Text style={styles.bankLabel}>Dekont Ekle</Text>
+                        {receiptImage ? (
+                            <View style={styles.receiptPreviewContainer}>
+                                <Image source={{ uri: receiptImage.uri }} style={styles.receiptPreview} />
+                                <TouchableOpacity style={styles.removeReceiptBtn} onPress={removeReceipt}>
+                                    <Text style={styles.removeReceiptText}>Kaldır ×</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity style={styles.uploadReceiptBtn} onPress={pickReceipt}>
+                                <Text style={styles.uploadReceiptIcon}>📷</Text>
+                                <Text style={styles.uploadReceiptText}>Dekont Fotoğrafı Seç / Yükle</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </View>
             ) : (
@@ -166,8 +249,7 @@ const SubscriptionScreen = ({ navigation }) => {
                     </Text>
                 )}
             </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </View>
   );
 };
@@ -211,7 +293,7 @@ const styles = StyleSheet.create({
   backBtnText: { color: '#38bdf8', fontWeight: 'bold' },
   headerTitleRow: { marginTop: 5 },
   headerTitle: { fontSize: 22, color: '#38bdf8', fontWeight: 'bold' },
-  content: { padding: 24 },
+  content: { padding: 24, paddingBottom: 100 },
   statusCard: { backgroundColor: '#1e293b', padding: 20, borderRadius: 20, borderLeftWidth: 6, marginBottom: 25, elevation: 8 },
   statusLabel: { color: '#94a3b8', fontSize: 12, fontWeight: 'bold' },
   statusText: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginVertical: 4 },
@@ -227,7 +309,7 @@ const styles = StyleSheet.create({
   methodIcon: { fontSize: 24, marginBottom: 6 },
   methodText: { color: '#94a3b8', fontWeight: 'bold', fontSize: 13 },
   activeMethodText: { color: '#38bdf8' },
-  bankBox: { backgroundColor: '#1e293b', padding: 25, borderRadius: 20, borderWidth: 1, borderColor: '#334155', marginBottom: 30 },
+  bankBox: { backgroundColor: '#1e293b', padding: 25, borderRadius: 20, borderWidth: 1, borderColor: '#334155', marginBottom: 20 },
   bankLabel: { color: '#64748b', fontSize: 12, marginBottom: 15, textAlign: 'center', fontWeight: 'bold' },
   bankInfoField: { alignItems: 'center' },
   bankValTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
@@ -235,7 +317,62 @@ const styles = StyleSheet.create({
   cardBox: { backgroundColor: '#1e293b', padding: 20, borderRadius: 20, marginBottom: 30, borderWidth: 1, borderColor: '#334155' },
   cardInput: { backgroundColor: '#0f172a', padding: 15, borderRadius: 12, color: '#fff', fontSize: 16, marginBottom: 12, borderWidth: 1, borderColor: '#1e293b' },
   payBtn: { backgroundColor: '#38bdf8', padding: 20, borderRadius: 16, alignItems: 'center', shadowColor: '#38bdf8', shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 },
-  payBtnText: { color: '#0f172a', fontSize: 16, fontWeight: 'bold' }
+  payBtnText: { color: '#0f172a', fontSize: 16, fontWeight: 'bold' },
+  receiptBox: {
+    backgroundColor: '#1e293b',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginBottom: 30,
+    alignItems: 'center',
+  },
+  uploadReceiptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    width: '100%',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  uploadReceiptIcon: {
+    fontSize: 20,
+  },
+  uploadReceiptText: {
+    color: '#38bdf8',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  receiptPreviewContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  receiptPreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+    resizeMode: 'contain',
+    backgroundColor: '#0f172a',
+  },
+  removeReceiptBtn: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  removeReceiptText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
 });
 
 export default SubscriptionScreen;

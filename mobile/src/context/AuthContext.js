@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, name, phone, tcNo, city, role) => {
+  const register = async (email, password, name, phone, tcNo, city, role, taxOffice, taxNumber, companyName) => {
     try {
       const response = await apiClient.post('/auth/register', { 
         email, 
@@ -67,7 +67,10 @@ export const AuthProvider = ({ children }) => {
         phone, 
         tcNo,
         city,
-        role 
+        role,
+        taxOffice,
+        taxNumber,
+        companyName
       });
       const { token, user: userData } = response.data;
       

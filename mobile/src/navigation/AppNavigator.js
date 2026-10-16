@@ -21,6 +21,8 @@ import SupportScreen from '../screens/SupportScreen';
 import SupportDetailScreen from '../screens/SupportDetailScreen';
 import UserDetailScreen from '../screens/UserDetailScreen';
 import QRScanScreen from '../screens/QRScanScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 const Stack = createStackNavigator();
 
@@ -67,11 +69,13 @@ const AppNavigator = () => {
       <Stack.Screen name="SupportDetail" component={SupportDetailScreen} />
       <Stack.Screen name="UserDetail" component={UserDetailScreen} />
       <Stack.Screen name="QRScan" component={QRScanScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
           </>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           </>
         )}
       </Stack.Navigator>

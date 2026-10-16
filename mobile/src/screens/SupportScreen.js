@@ -5,12 +5,13 @@ import {
   StyleSheet, 
   TextInput, 
   TouchableOpacity, 
-  ScrollView, 
   Alert, 
   ActivityIndicator, 
   FlatList,
-  SafeAreaView
+  SafeAreaView,
+  Platform
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../api/client';
 import { Ionicons } from '@expo/vector-icons';
@@ -103,7 +104,12 @@ const SupportScreen = ({ navigation }) => {
       </View>
 
       {showForm ? (
-        <ScrollView style={styles.form}>
+        <KeyboardAwareScrollView 
+          style={styles.form}
+          enableOnAndroid={true}
+          extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.formTitle}>Yeni Destek Talebi</Text>
           <Text style={styles.label}>Konu</Text>
           <TextInput
@@ -138,7 +144,7 @@ const SupportScreen = ({ navigation }) => {
               {submitting ? <ActivityIndicator color="#0f172a" /> : <Text style={styles.submitButtonText}>Gönder</Text>}
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       ) : (
         <View style={{ flex: 1 }}>
           <FlatList

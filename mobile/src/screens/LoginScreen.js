@@ -5,12 +5,12 @@ import {
   View, 
   TextInput, 
   TouchableOpacity, 
-  KeyboardAvoidingView, 
   Platform,
   ActivityIndicator,
   Alert,
   Image
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../context/AuthContext';
 
@@ -38,11 +38,11 @@ const LoginScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar hidden={true} />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
+      <KeyboardAwareScrollView 
+        contentContainerStyle={styles.content}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
       >
-        <View style={styles.content}>
           <View style={styles.header}>
             <Image 
               source={require('../../assets/logo.png')} 
@@ -75,6 +75,13 @@ const LoginScreen = ({ navigation }) => {
             />
 
             <TouchableOpacity 
+              style={styles.forgotPasswordLink}
+              onPress={() => navigation.navigate('ForgotPassword')}
+            >
+              <Text style={styles.forgotPasswordText}>Şifremi Unuttum?</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
               style={styles.loginButton} 
               onPress={handleLogin}
               disabled={loading}
@@ -95,8 +102,7 @@ const LoginScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </View>
   );
 };
@@ -106,11 +112,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0f172a',
   },
-  keyboardView: {
-    flex: 1,
-  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
@@ -165,6 +168,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  forgotPasswordLink: {
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+    marginTop: -4,
+  },
+  forgotPasswordText: {
+    color: '#38bdf8',
+    fontSize: 13,
+    fontWeight: '600',
   },
   registerLink: {
     marginTop: 24,

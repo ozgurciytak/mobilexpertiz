@@ -3,16 +3,15 @@ import {
   StyleSheet, 
   Text, 
   View, 
-  ScrollView, 
   TextInput, 
   TouchableOpacity, 
   SafeAreaView, 
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Linking
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../api/client';
@@ -158,11 +157,13 @@ const RequestDetailScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+      <KeyboardAwareScrollView 
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 80 : 120}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Text style={styles.backText}>← Geri</Text>
@@ -225,7 +226,7 @@ const RequestDetailScreen = ({ route, navigation }) => {
               </View>
             )}
 
-            {user?.role === 'EXPERT' && (
+            {user?.role === 'EXPERT' && request.selectedExpertId === user?.id && (
               <TouchableOpacity 
                 style={styles.smallPdfButton}
                 onPress={handleDownloadPDF}
@@ -388,8 +389,7 @@ const RequestDetailScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };
