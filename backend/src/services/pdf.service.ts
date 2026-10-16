@@ -1,13 +1,23 @@
 import PDFDocument from 'pdfkit';
 import path from 'path';
+import fs from 'fs';
 import QRCode from 'qrcode';
+
+const getAssetPath = (subPath: string) => {
+  const p1 = path.resolve(__dirname, '../assets', subPath);
+  if (fs.existsSync(p1)) return p1;
+  const p2 = path.resolve(__dirname, '../../src/assets', subPath);
+  if (fs.existsSync(p2)) return p2;
+  const p3 = path.resolve(process.cwd(), 'src/assets', subPath);
+  if (fs.existsSync(p3)) return p3;
+  return p1;
+};
 
 const createDoc = () => {
   const doc = new PDFDocument({ margin: 50 });
   
-  const fontsPath = path.resolve(__dirname, '../assets/fonts');
-  const regularFont = path.join(fontsPath, 'Roboto-Regular.ttf');
-  const boldFont = path.join(fontsPath, 'Roboto-Bold.ttf');
+  const regularFont = getAssetPath('fonts/Roboto-Regular.ttf');
+  const boldFont = getAssetPath('fonts/Roboto-Bold.ttf');
   
   doc.registerFont('Roboto', regularFont);
   doc.registerFont('Roboto-Bold', boldFont);
@@ -61,8 +71,10 @@ export const createReportPDFBuffer = (reportData: any): Promise<Buffer> => {
 
       // 1. Header with Logo (Left) and QR (Right)
       try {
-        const logoPath = path.resolve(__dirname, '../assets/logo.png');
-        doc.image(logoPath, 50, 40, { width: 50 });
+        const logoPath = getAssetPath('logo.png');
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 50, 40, { width: 50 });
+        }
       } catch (e) {}
 
       doc.fillColor('#1e293b').fontSize(18).font('Roboto-Bold').text('Mobil Expertiz', 110, 45, { align: 'left' });
@@ -159,9 +171,14 @@ export const createReportPDFBuffer = (reportData: any): Promise<Buffer> => {
                           doc.fontSize(9).font('Roboto-Bold').fillColor('#1e293b').text(`${part}:`, x, currentRowY, { width: colWidth - 10, align: 'left' });
                           const statusColor = status === 'Değişen' ? '#ef4444' : (status === 'Orijinal' ? '#22c55e' : '#f59e0b');
                           doc.fillColor(statusColor).font('Roboto').text(`${status}`, x, currentRowY + 11, { width: colWidth - 10, align: 'left' });
+                          
+                          if (typeof val === 'object' && val.notes) {
+                              doc.fontSize(8).fillColor('#64748b').font('Roboto').text(`${val.notes}`, x, currentRowY + 23, { width: colWidth - 10, height: 20, align: 'left' });
+                          }
                       });
 
-                      rowItems.forEach((item, idx) => {
+                      for (let idx = 0; idx < rowItems.length; idx++) {
+                          const item = rowItems[idx];
                           const [_, data] = item;
                           const x = startX + (idx * colWidth);
                           const val = data as any;
@@ -169,15 +186,22 @@ export const createReportPDFBuffer = (reportData: any): Promise<Buffer> => {
                           
                           if (imageUrl) {
                               try {
-                                  const imgPath = path.resolve(__dirname, '../../', imageUrl.replace(/^\//, ''));
-                                  doc.image(imgPath, x, currentRowY + 30, { width: imgWidth, height: imgHeight });
+                                  let imgData: Buffer | string;
+                                  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                                      const imgRes = await fetch(imageUrl);
+                                      const arrayBuf = await imgRes.arrayBuffer();
+                                      imgData = Buffer.from(arrayBuf);
+                                  } else {
+                                      imgData = path.resolve(__dirname, '../../', imageUrl.replace(/^\//, ''));
+                                  }
+                                  doc.image(imgData, x, currentRowY + 45, { width: imgWidth, height: imgHeight });
                               } catch (e) {
-                                  doc.rect(x, currentRowY + 30, imgWidth, imgHeight).strokeColor('#cbd5e1').stroke();
+                                  doc.rect(x, currentRowY + 45, imgWidth, imgHeight).strokeColor('#cbd5e1').stroke();
                               }
                           }
-                      });
+                      }
 
-                      doc.y = currentRowY + 30 + imgHeight + 25;
+                      doc.y = currentRowY + 45 + imgHeight + 25;
                   }
               }
           } catch (e) {

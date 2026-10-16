@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_here';
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.warn('⚠️ [GÜVENLİK UYARISI] JWT_SECRET ortam değişkeni tanımlanmamış! Lütfen .env dosyanızda güçlü bir JWT_SECRET belirleyin.');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'mobil_expertiz_secure_jwt_secret_key_2026';
 const EXPIRES_IN = '7d';
 
 export interface TokenPayload {

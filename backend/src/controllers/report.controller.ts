@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { createReportPDFBuffer } from '../services/pdf.service';
+import { sendPushNotification } from '../services/pushNotification.service';
 
 export const createReport = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -50,6 +51,14 @@ export const createReport = async (req: Request, res: Response): Promise<void> =
             where: { id: Number(requestId) },
             data: { status: 'COMPLETED' }
         });
+
+        // Araç sahibine raporun tamamlandığı bildirimini gönder
+        sendPushNotification({
+          toUserId: request.userId,
+          title: 'Ekspertiz Raporunuz Hazır! 📄',
+          body: `"${request.title}" aracınızın ekspertiz raporu hazırlandı ve PDF olarak yüklendi.`,
+          data: { requestId: request.id }
+        }).catch(err => console.error('Push notification error:', err));
 
         res.status(201).json({ message: 'Report created successfully', report });
     } catch (error) {

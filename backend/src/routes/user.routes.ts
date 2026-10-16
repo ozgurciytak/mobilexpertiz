@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { getProfile, getAllUsers, approveExpert, updateSubscription } from '../controllers/user.controller';
+import { getProfile, updateProfile, deleteProfile, savePushToken, getAllUsers, approveExpert, updateSubscription } from '../controllers/user.controller';
 import { authenticate, authorizeRole } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// Common: get profile
+// Common: get profile & push token
 router.get('/profile', authenticate, getProfile);
+router.put('/profile', authenticate, updateProfile);
+router.delete('/profile', authenticate, deleteProfile);
+router.post('/push-token', authenticate, savePushToken);
 
 // Admin routes
 router.get('/', authenticate, authorizeRole(['ADMIN']), getAllUsers);

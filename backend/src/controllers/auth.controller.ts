@@ -2,20 +2,32 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { prisma } from '../lib/prisma';
 import { generateToken } from '../utils/jwt';
+import { validateTcKimlikNo } from '../utils/tcKimlik';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, name, phone, tcNo, city, role } = req.body;
+    const { email, password, name, phone, tcNo, city, role, taxOffice, taxNumber, companyName } = req.body;
 
     // Validation
-    if (!email || !password || !name || !phone || !tcNo || !city) {
-      res.status(400).json({ error: 'Email, şifre, ad, telefon, il ve TC No alanları zorunludur.' });
+    if (!email || !password || !name || !phone || !city) {
+      res.status(400).json({ error: 'Email, şifre, ad, telefon ve il alanları zorunludur.' });
       return;
     }
 
-    if (tcNo.length !== 11 || !/^\d+$/.test(tcNo)) {
-      res.status(400).json({ error: 'TC Kimlik Numarası 11 haneli bir sayı olmalıdır.' });
-      return;
+    if (role === 'EXPERT') {
+      if (!taxOffice || !taxNumber || !companyName) {
+        res.status(400).json({ error: 'Uzman kayıtlarında Vergi Dairesi, Vergi Numarası ve Firma Ünvanı zorunludur.' });
+        return;
+      }
+    } else {
+      if (!tcNo) {
+        res.status(400).json({ error: 'TC Kimlik Numarası zorunludur.' });
+        return;
+      }
+      if (!validateTcKimlikNo(tcNo)) {
+        res.status(400).json({ error: 'Geçersiz T.C. Kimlik Numarası! Lütfen 11 haneli kimlik numaranızı doğru giriniz.' });
+        return;
+      }
     }
 
     // Check if user exists
@@ -23,7 +35,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       where: {
         OR: [
           { email },
-          { tcNo }
+          ...(tcNo ? [{ tcNo }] : [])
         ]
       }
     });
@@ -52,8 +64,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         password: hashedPassword,
         name,
         phone,
-        tcNo,
+        tcNo: tcNo || null,
         city,
+        taxOffice: taxOffice || null,
+        taxNumber: taxNumber || null,
+        companyName: companyName || null,
         role: role || 'USER',
         isApproved: role === 'EXPERT' ? false : true,
         subscriptionActive,
@@ -135,3 +150,82 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ error: 'Internal server error during login' });
   }
 };
+
+// Güvenli şifre sıfırlama kod deposu (email -> { code, expiry })
+const passwordResetStore = new Map<string, { code: string; expiry: number }>();
+
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ error: 'E-posta adresi zorunludur.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (!user) {
+      // Güvenlik gereği kullanıcının varlığını ifşa etmeden standart mesaj döner
+      res.status(200).json({ message: 'Eğer bu e-posta adresi kayıtlıysa, 6 haneli sıfırlama kodu iletildi.' });
+      return;
+    }
+
+    // 6 haneli doğrulama kodu üret
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = Date.now() + 15 * 60 * 1000; // 15 dakika geçerli
+
+    passwordResetStore.set(cleanEmail, { code, expiry });
+    console.log(`🔑 [ŞİFRE SIFIRLAMA] ${cleanEmail} için üretilen kod: ${code}`);
+
+    res.status(200).json({
+      message: 'Sıfırlama kodunuz oluşturuldu. Lütfen gelen kodu giriniz.',
+      devCode: process.env.NODE_ENV !== 'production' ? code : undefined
+    });
+  } catch (error) {
+    console.error('forgotPassword error', error);
+    res.status(500).json({ error: 'Şifre sıfırlama kodu gönderilirken bir hata oluştu.' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      res.status(400).json({ error: 'E-posta, doğrulama kodu ve yeni şifre zorunludur.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: 'Yeni şifre en az 6 karakter olmalıdır.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const resetData = passwordResetStore.get(cleanEmail);
+
+    if (!resetData || resetData.code !== code.toString().trim()) {
+      res.status(400).json({ error: 'Geçersiz veya hatalı doğrulama kodu girdiniz.' });
+      return;
+    }
+
+    if (Date.now() > resetData.expiry) {
+      passwordResetStore.delete(cleanEmail);
+      res.status(400).json({ error: 'Doğrulama kodunun 15 dakikalık süresi dolmuş. Lütfen yeni kod isteyin.' });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { email: cleanEmail },
+      data: { password: hashedPassword }
+    });
+
+    passwordResetStore.delete(cleanEmail);
+
+    res.status(200).json({ message: 'Şifreniz başarıyla sıfırlandı. Yeni şifrenizle giriş yapabilirsiniz.' });
+  } catch (error) {
+    console.error('resetPassword error', error);
+    res.status(500).json({ error: 'Şifre sıfırlanırken bir hata oluştu.' });
+  }
+};
+

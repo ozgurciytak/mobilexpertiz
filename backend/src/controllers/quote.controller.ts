@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { sendPushNotification } from '../services/pushNotification.service';
 
 export const submitQuote = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -74,6 +75,14 @@ export const submitQuote = async (req: Request, res: Response): Promise<void> =>
             where: { id: Number(requestId) },
             data: { status: 'QUOTED' }
         });
+
+        // Araç sahibine anlık push bildirim gönder
+        sendPushNotification({
+          toUserId: request.userId,
+          title: 'Yeni Bir Teklif Aldınız! 🚗',
+          body: `${expert.name} uzmanı aracınız için ${price} ₺ teklif sundu.`,
+          data: { requestId: request.id }
+        }).catch(err => console.error('Push notification error:', err));
 
         res.status(201).json({ message: 'Quote submitted successfully', quote });
     } catch (error) {
@@ -162,6 +171,14 @@ export const acceptQuote = async (req: Request, res: Response): Promise<void> =>
                 }
             })
         ]);
+
+        // Uzmana teklifin kabul edildiği bildirimini gönder
+        sendPushNotification({
+          toUserId: quote.expertId,
+          title: 'Tebrikler! Teklifiniz Kabul Edildi 🎉',
+          body: `"${quote.request.title}" talebi için verdiğiniz teklif onaylandı. Müşteriyle iletişime geçebilirsiniz.`,
+          data: { requestId: quote.requestId }
+        }).catch(err => console.error('Push notification error:', err));
 
         res.status(200).json({ message: 'Quote accepted successfully', request: transaction[2] });
     } catch (error) {

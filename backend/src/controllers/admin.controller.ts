@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
 import { prisma } from '../lib/prisma';
 import { PaymentStatus, Role } from '@prisma/client';
 import { createPDFBuffer, createUserProfilePDFBuffer, createRequestDetailPDFBuffer } from '../services/pdf.service';
@@ -26,6 +27,10 @@ export const getAllRecords = async (req: Request, res: Response): Promise<void> 
         name: true,
         phone: true,
         tcNo: true,
+        taxOffice: true,
+        taxNumber: true,
+        companyName: true,
+        city: true,
         role: true,
         isApproved: true,
         isBlocked: true,
@@ -155,17 +160,32 @@ export const renewExpertSubscription = async (req: Request, res: Response): Prom
 export const editUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
-        const { name, email, phone, tcNo } = req.body;
+        const { name, email, phone, tcNo, taxOffice, taxNumber, companyName, city, password } = req.body;
+
+        const updateData: any = { name, email, phone, city };
+        
+        if (tcNo !== undefined) updateData.tcNo = tcNo || null;
+        if (taxOffice !== undefined) updateData.taxOffice = taxOffice || null;
+        if (taxNumber !== undefined) updateData.taxNumber = taxNumber || null;
+        if (companyName !== undefined) updateData.companyName = companyName || null;
+
+        if (password) {
+            updateData.password = await bcrypt.hash(password, 10);
+        }
 
         const updatedUser = await prisma.user.update({
             where: { id: Number(id) },
-            data: { name, email, phone, tcNo },
+            data: updateData,
             select: {
                 id: true,
                 name: true,
                 email: true,
                 phone: true,
                 tcNo: true,
+                taxOffice: true,
+                taxNumber: true,
+                companyName: true,
+                city: true,
                 role: true
             }
         });
