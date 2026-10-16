@@ -1,15 +1,10 @@
 {
   "version": 2,
-  "builds": [
+  "outputDirectory": "backend/public",
+  "rewrites": [
     {
-      "src": "backend/src/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "backend/src/index.ts"
+      "source": "/(.*)",
+      "destination": "/backend/api/index"
     }
   ]
 }
